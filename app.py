@@ -2,8 +2,8 @@ import streamlit as st
 import base64
 import os
 
-# ページの設定
-st.set_page_config(page_title="頭部外傷後の注意", layout="centered")
+# ページの設定（タイトルも日英対応）
+st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
 
 # セッション状態の初期化
 if "authenticated" not in st.session_state:
@@ -25,9 +25,9 @@ def check_password():
 if not st.session_state.authenticated:
     st.title("🔒 医療用パンフレット（関係者限定）")
     st.write("配布されたQRコードに付属のパスワードを入力してください。")
-    st.text_input("パスワード", type="password", key="password_input", on_change=check_password)
+    st.text_input("パスワード / Password", type="password", key="password_input", on_change=check_password)
     if "password_error" in st.session_state and st.session_state.password_error:
-        st.error("パスワードが間違っています。")
+        st.error("パスワードが間違っています。 / Incorrect password.")
 
 # ---------------------------------------------
 # 2. ポスター型コンテンツ画面（ログイン成功時）
@@ -35,10 +35,12 @@ if not st.session_state.authenticated:
 if st.session_state.authenticated:
     col1, col2 = st.columns([8, 2])
     with col2:
-        if st.button("ログアウト"):
+        # ログアウトボタン
+        if st.button("ログアウト/Logout"):
             st.session_state.authenticated = False
             st.rerun()
 
+    # 画像の読み込み関数
     def get_image_base64(file_path):
         if os.path.exists(file_path):
             with open(file_path, "rb") as image_file:
@@ -51,8 +53,8 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # PPTに合わせた改行とフォントサイズ、ハイライト装飾に修正（空行なし）
-    poster_html = """<style>
+    # 共通のCSSデザイン
+    shared_css = """<style>
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
 .header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
 .header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
@@ -68,7 +70,10 @@ if st.session_state.authenticated:
 .bottom-section ul { padding-left: 30px; margin: 0; }
 .bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
 @media (max-width: 768px) { .pc-br { display: none; } }
-</style>
+</style>"""
+
+    # 日本語版のHTML
+    ja_html = """
 <div class="poster-wrapper">
 <div class="header">
 <h2>頭部外傷後の注意</h2>
@@ -101,5 +106,49 @@ if st.session_state.authenticated:
 </div>
 </div>"""
 
-    final_html = poster_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
-    st.markdown(final_html, unsafe_allow_html=True)
+    # 英語版のHTML（英語は自然に折り返させるため pc-br は不使用）
+    en_html = """
+<div class="poster-wrapper">
+<div class="header">
+<h2>Precautions After a Head Injury</h2>
+<img class="logo-img" src="LOGO_IMG_HOLDER" alt="Hospital Logo">
+</div>
+<div class="bg-section">
+<div class="highlight-container">
+<p><span class="highlight">Various changes can occur in the brain when you hit your head. Although rare, <strong>bleeding inside the skull can be life-threatening</strong>, so caution is required.</span></p>
+<p><span class="highlight">Symptoms of such intracranial hemorrhage (bleeding inside the head) may appear immediately after hitting the head, 1 to 2 days later, or even much later. Therefore, <strong>you must be very careful even if you currently have no symptoms.</strong></span></p>
+<p><span class="highlight">This type of intracranial hemorrhage is the reason why someone who seemed fine might suddenly pass away. You cannot let your guard down just because there are no bone abnormalities.</span></p>
+<p><span class="highlight">Therefore, it is extremely important to carefully read the precautions below and bring the patient to the hospital before it is too late.</span></p>
+</div>
+</div>
+<div class="red-box">
+<h4>1. When a headache gradually worsens</h4>
+<h4>2. When experiencing nausea or vomiting</h4>
+<p>(Throwing up food, or retching even when eating nothing)<br>(Children often vomit easily, but pay attention if it happens multiple times)</p>
+<h4>3. When arms or legs become difficult to move, feel numb, or if the patient frequently drops things they are holding</h4>
+<h4>4. When the patient becomes dazed, or falls asleep immediately if left alone and is difficult to wake up</h4>
+<p>* Especially on the night of the head injury, please try to wake them up once by gently stimulating them.<br>(Caution is needed with children, as it can be difficult to tell once they fall asleep.)</p>
+<h4>5. When convulsions (seizures) occur</h4>
+</div>
+<div class="bottom-section">
+<h3>Precautions After Hitting Your Head</h3>
+<ul>
+<li>Small children often do not show symptoms easily even when they hit their heads quite hard. Therefore, it is important to keep a close eye on them for 1 to 2 days, even if they seem fine.</li>
+<li>After hitting your head, please rest for at least 2 to 3 days, and avoid going out alone or overexerting yourself.</li>
+<li>When bringing the patient to the hospital, please contact the hospital in advance if possible, and transport them quickly using a vehicle with as little vibration as possible.<br>There is no need to be overly anxious, but please be sure to follow the above precautions.</li>
+</ul>
+</div>
+</div>"""
+
+    # 画像URLを埋め込む
+    final_ja = shared_css + ja_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
+    final_en = shared_css + en_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
+
+    # 日英切り替えタブを作成
+    tab_ja, tab_en = st.tabs(["🇯🇵 日本語", "🇺🇸 English"])
+    
+    with tab_ja:
+        st.markdown(final_ja, unsafe_allow_html=True)
+        
+    with tab_en:
+        st.markdown(final_en, unsafe_allow_html=True)
