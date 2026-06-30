@@ -3,14 +3,13 @@ import streamlit as st
 # ページの設定（スマホでも見やすいように設定）
 st.set_page_config(page_title="頭部外傷後の注意", layout="centered")
 
-# セッション状態の初期化（ログイン状態を保持する仕組み）
+# セッション状態の初期化
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 # パスワード確認の関数
 def check_password():
-    CORRECT_PASSWORD = "nms1199" # ★パスワードをご指定のものに変更しました
-    
+    CORRECT_PASSWORD = "nms1199" 
     if st.session_state.password_input == CORRECT_PASSWORD:
         st.session_state.authenticated = True
         st.session_state.password_error = False
@@ -24,9 +23,7 @@ def check_password():
 if not st.session_state.authenticated:
     st.title("🔒 医療用パンフレット（関係者限定）")
     st.write("配布されたQRコードに付属のパスワードを入力してください。")
-    
     st.text_input("パスワード", type="password", key="password_input", on_change=check_password)
-    
     if "password_error" in st.session_state and st.session_state.password_error:
         st.error("パスワードが間違っています。")
 
@@ -34,32 +31,31 @@ if not st.session_state.authenticated:
 # 2. ポスター型コンテンツ画面（ログイン成功時）
 # ---------------------------------------------
 if st.session_state.authenticated:
-    
-    # ログアウトボタンを右上に配置
     col1, col2 = st.columns([8, 2])
     with col2:
         if st.button("ログアウト"):
             st.session_state.authenticated = False
             st.rerun()
 
-    # Streamlitのバグを回避するため、HTML内の空行（改行のみの行）を完全に排除した文字列に修正
+    # 文字サイズ拡大と背景画像・ロゴ画像の読み込みを追加（空行なし）
     poster_html = """<style>
-.poster-wrapper { background-color: #f4f4f4; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.6; }
+.poster-wrapper { background-color: #f4f4f4; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.6; font-size: 18px; }
 .header { border-bottom: 2px dotted #999; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
-.header h2 { margin: 0; font-size: 24px; color: #000; }
-.bg-section { background: linear-gradient(135deg, #e6ecf0 0%, #c4d4e0 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-.highlight { background-color: rgba(255, 255, 255, 0.85); padding: 2px 5px; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.header h2 { margin: 0; font-size: 28px; color: #000; }
+.logo-img { height: 45px; object-fit: contain; }
+.bg-section { background-image: url('https://raw.githubusercontent.com/r-suga-dot/head-injury-noticeNMS/main/bg.jpg'); background-size: cover; background-position: center; padding: 25px 15px; border-radius: 8px; margin-bottom: 20px; }
+.highlight { background-color: rgba(255, 255, 255, 0.9); padding: 4px 8px; display: inline; font-size: 1.05em; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.8; }
 .red-box { border: 3px solid #d32f2f; border-radius: 15px; background-color: #fff9e6; padding: 20px 20px 10px 20px; margin: 20px 0; }
-.red-box h4 { margin: 0 0 5px 0; font-size: 1.1em; color: #000; font-weight: bold; }
-.red-box p { margin: 0 0 15px 20px; font-size: 0.9em; color: #333; }
-.bottom-section h3 { font-size: 1.2em; border-bottom: 1px solid #ccc; padding-bottom: 5px; font-weight: bold; }
-.bottom-section ul { padding-left: 20px; }
-.bottom-section li { margin-bottom: 10px; }
+.red-box h4 { margin: 0 0 8px 0; font-size: 1.25em; color: #000; font-weight: bold; }
+.red-box p { margin: 0 0 18px 20px; font-size: 1em; color: #333; }
+.bottom-section h3 { font-size: 1.3em; border-bottom: 1px solid #ccc; padding-bottom: 5px; font-weight: bold; }
+.bottom-section ul { padding-left: 25px; }
+.bottom-section li { margin-bottom: 12px; font-size: 1em; }
 </style>
 <div class="poster-wrapper">
 <div class="header">
 <h2>頭部外傷後の注意</h2>
-<span style="font-size: 0.9em; color: #003366; font-weight: bold;">🏥 救急外来</span>
+<img class="logo-img" src="https://raw.githubusercontent.com/r-suga-dot/head-injury-noticeNMS/main/logo.png" alt="日本医科大学付属病院">
 </div>
 <div class="bg-section">
 <p><span class="highlight">頭を打った時には、脳にいろいろな変化が起ります。</span><br><span class="highlight">数は少ないのですが、<strong>頭蓋骨（あたまの骨）の内側に出血が<br>起ると生命に危険</strong>をおよぼすことがありますので注意が必要です。</span></p>
@@ -86,5 +82,4 @@ if st.session_state.authenticated:
 </div>
 </div>"""
     
-    # HTMLをStreamlit上でレンダリング
     st.markdown(poster_html, unsafe_allow_html=True)
