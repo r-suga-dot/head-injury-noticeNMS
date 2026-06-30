@@ -51,23 +51,24 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-# CSSデザイン（背景を確実に表示）
-    shared_css = """<style>
-.poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
+# PPTに合わせた改行とフォントサイズ、ハイライト装飾に修正（空行なし）
+    poster_html = """<style>
+.poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
 .header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-.header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; }
+.header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
 .logo-img { height: 50px; object-fit: contain; }
-.bg-section { background-image: url('BG_IMG_DATA'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
-.highlight { background-color: rgba(255, 255, 255, 0.85); padding: 5px 10px; display: inline-block; font-size: 1.1em; color: #000; border-radius: 4px; text-align: left; }
+.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
+.highlight-container { text-align: left; display: inline-block; }
+.highlight { background-color: rgba(255, 255, 255, 0.88); padding: 4px 8px; font-size: 1.1em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.95; color: #000; }
+.bg-section p { margin: 0 0 18px 0; }
 .red-box { border: 3px solid #d32f2f; border-radius: 16px; background-color: #ffffff; padding: 25px 25px 15px 25px; margin: 30px 0; }
 .red-box h4 { margin: 0 0 8px 0; font-size: 1.3em; color: #d32f2f; font-weight: bold; }
 .red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #333; line-height: 1.6; }
 .bottom-section h3 { font-size: 1.35em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
 .bottom-section ul { padding-left: 30px; margin: 0; }
 .bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
-</style>"""
-
-    ja_html = """
+@media (max-width: 768px) { .pc-br { display: none; } }
+</style>
 <div class="poster-wrapper">
 <div class="header">
 <h2>頭部外傷後の注意</h2>
