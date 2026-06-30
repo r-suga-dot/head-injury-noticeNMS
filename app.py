@@ -51,8 +51,9 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # CSSデザイン（背景がしっかり見える「マーカー風ハイライト」スタイル）
+    # CSSデザイン（スマホ画面用のレスポンシブデザインを追加）
     shared_css = """<style>
+/* 共通・PC向け基本設定 */
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
 .header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
 .header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
@@ -67,7 +68,23 @@ if st.session_state.authenticated:
 .bottom-section h3 { font-size: 1.35em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
 .bottom-section ul { padding-left: 30px; margin: 0; }
 .bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
-@media (max-width: 768px) { .pc-br { display: none; } }
+
+/* スマホ向け調整 (画面幅768px以下の場合に適用される設定) */
+@media (max-width: 768px) { 
+    .pc-br { display: none; } /* PC用の意図的な改行をスマホでは無効化 */
+    .poster-wrapper { font-size: 15px; padding: 12px; } /* 全体の文字サイズと余白を縮小 */
+    .header { flex-direction: column; align-items: center; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; } /* タイトルとロゴを縦並びに */
+    .header h2 { font-size: 22px; text-align: center; } /* タイトル文字サイズ縮小 */
+    .logo-img { height: 40px; } 
+    .bg-section { padding: 20px 15px; margin-bottom: 20px; } /* 背景画像のエリアの余白縮小 */
+    .highlight { font-size: 1.05em; padding: 3px 6px; line-height: 1.8; }
+    .red-box { padding: 15px 15px 10px 15px; margin: 20px 0; } /* 赤枠の余白縮小 */
+    .red-box h4 { font-size: 1.15em; }
+    .red-box p { margin: 0 0 15px 15px; font-size: 0.95em; }
+    .bottom-section h3 { font-size: 1.2em; margin-bottom: 15px; }
+    .bottom-section ul { padding-left: 20px; }
+    .bottom-section li { font-size: 0.95em; margin-bottom: 10px; }
+}
 </style>"""
 
     ja_html = """
