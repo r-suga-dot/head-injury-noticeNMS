@@ -1,6 +1,8 @@
 import streamlit as st
+import base64
+import os
 
-# ページの設定（スマホでも見やすいように設定）
+# ページの設定（横幅を少し広く見せる設定を追加）
 st.set_page_config(page_title="頭部外傷後の注意", layout="centered")
 
 # セッション状態の初期化
@@ -37,25 +39,38 @@ if st.session_state.authenticated:
             st.session_state.authenticated = False
             st.rerun()
 
-    # 文字サイズ拡大と背景画像・ロゴ画像の読み込みを追加（空行なし）
+    # ローカルの画像ファイルを直接読み込む関数
+    def get_image_base64(file_path):
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
+        return ""
+
+    logo_b64 = get_image_base64("logo.png")
+    bg_b64 = get_image_base64("bg.jpg")
+
+    logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
+    bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
+
+    # デザインを大幅に強化したHTML/CSS
     poster_html = """<style>
-.poster-wrapper { background-color: #f4f4f4; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.6; font-size: 18px; }
-.header { border-bottom: 2px dotted #999; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
-.header h2 { margin: 0; font-size: 28px; color: #000; }
-.logo-img { height: 45px; object-fit: contain; }
-.bg-section { background-image: url('https://raw.githubusercontent.com/r-suga-dot/head-injury-noticeNMS/main/bg.jpg'); background-size: cover; background-position: center; padding: 25px 15px; border-radius: 8px; margin-bottom: 20px; }
-.highlight { background-color: rgba(255, 255, 255, 0.9); padding: 4px 8px; display: inline; font-size: 1.05em; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.8; }
-.red-box { border: 3px solid #d32f2f; border-radius: 15px; background-color: #fff9e6; padding: 20px 20px 10px 20px; margin: 20px 0; }
-.red-box h4 { margin: 0 0 8px 0; font-size: 1.25em; color: #000; font-weight: bold; }
-.red-box p { margin: 0 0 18px 20px; font-size: 1em; color: #333; }
-.bottom-section h3 { font-size: 1.3em; border-bottom: 1px solid #ccc; padding-bottom: 5px; font-weight: bold; }
-.bottom-section ul { padding-left: 25px; }
-.bottom-section li { margin-bottom: 12px; font-size: 1em; }
+.poster-wrapper { background-color: #ffffff; padding: 30px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 20px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+.header h2 { margin: 0; font-size: 34px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
+.logo-img { height: 55px; object-fit: contain; }
+.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 30px 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+.highlight { background-color: rgba(255, 255, 255, 0.95); padding: 4px 10px; display: inline; font-size: 1.1em; box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 4px; font-weight: 500; }
+.red-box { border: 4px solid #d32f2f; border-radius: 16px; background-color: #fffdf5; padding: 25px 25px 15px 25px; margin: 30px 0; box-shadow: 0 6px 16px rgba(211, 47, 47, 0.12); }
+.red-box h4 { margin: 0 0 10px 0; font-size: 1.35em; color: #b71c1c; font-weight: bold; border-bottom: 1px dashed #ffcdd2; padding-bottom: 5px; }
+.red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #444; }
+.bottom-section h3 { font-size: 1.4em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
+.bottom-section ul { padding-left: 30px; }
+.bottom-section li { margin-bottom: 15px; font-size: 1.1em; }
 </style>
 <div class="poster-wrapper">
 <div class="header">
 <h2>頭部外傷後の注意</h2>
-<img class="logo-img" src="https://raw.githubusercontent.com/r-suga-dot/head-injury-noticeNMS/main/logo.png" alt="日本医科大学付属病院">
+<img class="logo-img" src="LOGO_IMG_HOLDER" alt="医療機関ロゴ">
 </div>
 <div class="bg-section">
 <p><span class="highlight">頭を打った時には、脳にいろいろな変化が起ります。</span><br><span class="highlight">数は少ないのですが、<strong>頭蓋骨（あたまの骨）の内側に出血が<br>起ると生命に危険</strong>をおよぼすことがありますので注意が必要です。</span></p>
@@ -81,5 +96,7 @@ if st.session_state.authenticated:
 </ul>
 </div>
 </div>"""
-    
-    st.markdown(poster_html, unsafe_allow_html=True)
+
+    # 画像の文字列をHTMLに組み込む
+    final_html = poster_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
+    st.markdown(final_html, unsafe_allow_html=True)
