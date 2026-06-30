@@ -58,7 +58,17 @@ if st.session_state.authenticated:
 .header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
 .logo-img { height: 50px; object-fit: contain; }
 .bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
-.highlight { background-color: rgba(255, 255, 255, 0.2); padding: 5px 10px; display: inline-block; font-size: 1.1em; line-height: 1.6; color: #000; border-radius: 4px; text-align: left; }
+.highlight { 
+    background-color: rgba(255, 255, 255, 0.5); /* 0.8から0.5に変更 */
+    backdrop-filter: blur(5px);                /* すりガラス効果を追加 */
+    padding: 15px; 
+    font-size: 1.1em; 
+    line-height: 1.6; 
+    color: #000; 
+    border-radius: 8px; 
+    border: 1px solid rgba(255,255,255,0.3); 
+    text-align: left; 
+}
 .red-box { border: 3px solid #d32f2f; border-radius: 16px; background-color: #ffffff; padding: 25px 25px 15px 25px; margin: 30px 0; }
 .red-box h4 { margin: 0 0 8px 0; font-size: 1.3em; color: #d32f2f; font-weight: bold; }
 .red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #333; line-height: 1.6; }
