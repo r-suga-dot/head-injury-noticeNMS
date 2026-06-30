@@ -51,14 +51,14 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # CSSデザイン（背景を活かす構成に変更）
+    # CSSデザイン（背景画像がしっかり活きるように微調整）
     shared_css = """<style>
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
 .header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
 .header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
 .logo-img { height: 50px; object-fit: contain; }
 .bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
-.highlight { background-color: rgba(255, 255, 255, 0.8); padding: 5px 10px; display: inline-block; font-size: 1.1em; line-height: 1.6; color: #000; border-radius: 4px; text-align: left; }
+.highlight { background-color: rgba(255, 255, 255, 0.9); padding: 15px 20px; display: inline-block; font-size: 1.1em; line-height: 1.7; color: #000; border-radius: 8px; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .red-box { border: 3px solid #d32f2f; border-radius: 16px; background-color: #ffffff; padding: 25px 25px 15px 25px; margin: 30px 0; }
 .red-box h4 { margin: 0 0 8px 0; font-size: 1.3em; color: #d32f2f; font-weight: bold; }
 .red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #333; line-height: 1.6; }
@@ -134,10 +134,11 @@ Therefore, it is extremely important to carefully read the precautions below and
 </div>
 </div>"""
 
-    final_ja = shared_css + ja_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
-    final_en = shared_css + en_html.replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
+    # 【修正箇所】CSSとHTMLをすべて連結したあとの全体に対して一括で置換をかけるようにしました
+    final_ja = (shared_css + ja_html).replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
+    final_en = (shared_css + en_html).replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
 
-    # タブ名を変更
+    # タブの描画
     tab_ja, tab_en = st.tabs(["日本語", "English"])
     
     with tab_ja:
