@@ -1,6 +1,9 @@
 import streamlit as st
 import base64
 import os
+import pandas as pd
+from datetime import datetime
+import pytz
 
 # ページの設定
 st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
@@ -9,7 +12,13 @@ st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# パスワード確認の関数
+# ---------------------------------------------
+# ★新機能：URLパラメータによる自動ログイン
+# ---------------------------------------------
+if "pwd" in st.query_params and st.query_params["pwd"] == "nms1199":
+    st.session_state.authenticated = True
+
+# パスワード確認の関数（手動入力用）
 def check_password():
     CORRECT_PASSWORD = "nms1199" 
     if st.session_state.password_input == CORRECT_PASSWORD:
@@ -20,7 +29,7 @@ def check_password():
         st.session_state.password_error = True
 
 # ---------------------------------------------
-# 1. パスワード入力画面
+# 1. パスワード入力画面（手動アクセス時）
 # ---------------------------------------------
 if not st.session_state.authenticated:
     st.title("🔒 医療用パンフレット（関係者限定）")
@@ -37,6 +46,8 @@ if st.session_state.authenticated:
     with col2:
         if st.button("ログアウト / Logout"):
             st.session_state.authenticated = False
+            # ログアウト時はURLのパスワードを消去してリロード
+            st.query_params.clear()
             st.rerun()
 
     def get_image_base64(file_path):
@@ -51,7 +62,7 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # CSSデザイン（スマホ画面用のレスポンシブデザインを追加）
+    # CSSデザイン
     shared_css = """<style>
 /* 共通・PC向け基本設定 */
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
@@ -69,16 +80,16 @@ if st.session_state.authenticated:
 .bottom-section ul { padding-left: 30px; margin: 0; }
 .bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
 
-/* スマホ向け調整 (画面幅768px以下の場合に適用される設定) */
+/* スマホ向け調整 */
 @media (max-width: 768px) { 
-    .pc-br { display: none; } /* PC用の意図的な改行をスマホでは無効化 */
-    .poster-wrapper { font-size: 15px; padding: 12px; } /* 全体の文字サイズと余白を縮小 */
-    .header { flex-direction: column; align-items: center; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; } /* タイトルとロゴを縦並びに */
-    .header h2 { font-size: 22px; text-align: center; } /* タイトル文字サイズ縮小 */
+    .pc-br { display: none; }
+    .poster-wrapper { font-size: 15px; padding: 12px; }
+    .header { flex-direction: column; align-items: center; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; }
+    .header h2 { font-size: 22px; text-align: center; }
     .logo-img { height: 40px; } 
-    .bg-section { padding: 20px 15px; margin-bottom: 20px; } /* 背景画像のエリアの余白縮小 */
+    .bg-section { padding: 20px 15px; margin-bottom: 20px; }
     .highlight { font-size: 1.05em; padding: 3px 6px; line-height: 1.8; }
-    .red-box { padding: 15px 15px 10px 15px; margin: 20px 0; } /* 赤枠の余白縮小 */
+    .red-box { padding: 15px 15px 10px 15px; margin: 20px 0; }
     .red-box h4 { font-size: 1.15em; }
     .red-box p { margin: 0 0 15px 15px; font-size: 0.95em; }
     .bottom-section h3 { font-size: 1.2em; margin-bottom: 15px; }
@@ -153,11 +164,9 @@ if st.session_state.authenticated:
 </div>
 </div>"""
 
-    # CSSと各言語のHTMLを結合し、画像をBase64で置換
     final_ja = (shared_css + ja_html).replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
     final_en = (shared_css + en_html).replace("LOGO_IMG_HOLDER", logo_src).replace("BG_IMG_HOLDER", bg_src)
 
-    # タブの描画
     tab_ja, tab_en = st.tabs(["日本語", "English"])
     
     with tab_ja:
@@ -165,3 +174,46 @@ if st.session_state.authenticated:
         
     with tab_en:
         st.markdown(final_en, unsafe_allow_html=True)
+
+    # ---------------------------------------------
+    # 3. 説明確認フォームとデータ保存
+    # ---------------------------------------------
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
+    st.subheader("📝 説明確認記録 / Confirmation Record")
+    st.write("注意事項を読み、理解した上でご署名をお願いいたします。")
+    
+    with st.form("signature_form"):
+        patient_name = st.text_input("患者様氏名 / Patient Name")
+        doctor_name = st.text_input("担当医師名 / Attending Doctor")
+        submitted = st.form_submit_button("記録を保存する / Save Record")
+
+        if submitted:
+            if patient_name and doctor_name:
+                # 日本時間を取得
+                tokyo_tz = pytz.timezone('Asia/Tokyo')
+                current_time = datetime.now(tokyo_tz).strftime("%Y-%m-%d %H:%M:%S")
+                
+                # データをデータフレーム化
+                record = {
+                    "確認日時": current_time,
+                    "患者名": patient_name,
+                    "担当医": doctor_name
+                }
+                df = pd.DataFrame([record])
+                csv_path = "records.csv"
+                
+                # CSVに追記保存
+                if os.path.exists(csv_path):
+                    df.to_csv(csv_path, mode='a', header=False, index=False, encoding='utf-8-sig')
+                else:
+                    df.to_csv(csv_path, mode='w', header=True, index=False, encoding='utf-8-sig')
+                
+                st.success(f"【記録完了】{patient_name} 様、ありがとうございました。")
+            else:
+                st.error("患者様氏名と担当医師名の両方を入力してください。")
+
+    # 担当者向けのCSVダウンロードボタン（常に表示）
+    if os.path.exists("records.csv"):
+        st.write("---")
+        with open("records.csv", "rb") as f:
+            st.download_button("📥 【医療スタッフ用】記録データ(CSV)をダウンロード", f, file_name="records.csv")
