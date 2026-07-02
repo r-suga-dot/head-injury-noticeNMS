@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 import os
 import datetime
@@ -29,10 +30,9 @@ if "authenticated" not in st.session_state:
 # 1. ログイン 兼 案内記録フォーム画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
-    st.title("🔒 頭部外傷案内パンフレット")
+    st.title("🔒 医療用パンフレット")
     st.write("関係者用パスワードと、案内記録を入力してください。")
     
-    # フォーム機能を使って、入力項目をまとめる
     with st.form("login_and_signature_form"):
         st.subheader("🔑 パスワード / Password")
         password_input = st.text_input("パスワードを入力", type="password")
@@ -44,7 +44,6 @@ if not st.session_state.authenticated:
         patient_name = st.text_input("患者名（またはカルテ番号） / Patient's Name or ID")
         confirm_check = st.checkbox("パンフレットの内容を案内し、確認しました / I have explained and confirmed the contents.")
         
-        # 送信ボタン
         submitted = st.form_submit_button("記録を送信してパンフレットを表示 / Submit & View")
         
         if submitted:
@@ -61,7 +60,7 @@ if not st.session_state.authenticated:
                 try:
                     requests.post(GOOGLE_FORM_URL, data=payload)
                 except Exception:
-                    pass # ネットワークエラーが起きても画面は次に進める
+                    pass 
                 
                 # ② ログイン状態をCookieに記憶（有効期限：365日）
                 st.session_state.authenticated = True
@@ -70,7 +69,7 @@ if not st.session_state.authenticated:
                 st.success("✅ 記録を保存しました。パンフレットを表示します...")
                 import time
                 time.sleep(1.5)
-                st.rerun() # 画面をリロードしてパンフレットを表示
+                st.rerun()
 
 # ---------------------------------------------
 # 2. ポスター型コンテンツ画面
@@ -96,7 +95,6 @@ if st.session_state.authenticated:
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
     shared_css = """<style>
-/* 共通・PC向け基本設定 */
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
 .header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
 .header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
@@ -111,8 +109,6 @@ if st.session_state.authenticated:
 .bottom-section h3 { font-size: 1.35em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
 .bottom-section ul { padding-left: 30px; margin: 0; }
 .bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
-
-/* スマホ向け調整 */
 @media (max-width: 768px) { 
     .pc-br { display: none; }
     .poster-wrapper { font-size: 15px; padding: 12px; }
@@ -127,6 +123,11 @@ if st.session_state.authenticated:
     .bottom-section h3 { font-size: 1.2em; margin-bottom: 15px; }
     .bottom-section ul { padding-left: 20px; }
     .bottom-section li { font-size: 0.95em; margin-bottom: 10px; }
+}
+/* 印刷時の設定（不要なボタンやタブを消す） */
+@media print {
+    button, .stTabs [data-baseweb="tab-list"], iframe { display: none !important; }
+    .poster-wrapper { box-shadow: none; border: none; }
 }
 </style>"""
 
@@ -206,3 +207,21 @@ if st.session_state.authenticated:
         
     with tab_en:
         st.markdown(final_en, unsafe_allow_html=True)
+
+    # ---------------------------------------------
+    # 3. PDF保存（印刷）ボタンの追加
+    # ---------------------------------------------
+    st.write("") # スペース空け
+    components.html(
+        """
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="window.parent.print()" style="padding: 12px 24px; font-size: 16px; border-radius: 8px; background-color: #1a365d; color: white; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                🖨️ 画面をPDFで保存・印刷する / Save as PDF
+            </button>
+            <p style="font-size: 12px; color: #666; margin-top: 10px; font-family: sans-serif;">
+                ※スマートフォンの場合は、共有メニューから「プリント」または「PDFに保存」を選択してください。
+            </p>
+        </div>
+        """,
+        height=120
+    )
