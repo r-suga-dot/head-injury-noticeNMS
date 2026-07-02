@@ -9,7 +9,7 @@ import extra_streamlit_components as stx
 st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
 
 # ==========================================
-# 📝 スプレッドシート記録用の設定（自動抽出済み）
+# 📝 スプレッドシート記録用の設定
 # ==========================================
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeyLSwiQrUYWlQtUCYAc_mc4JZgIwlI6gK149bMQWIfYekZ1A/formResponse"
 ENTRY_DOCTOR = "entry.629282236" 
@@ -19,34 +19,58 @@ ENTRY_PATIENT = "entry.2140844596"
 # 🍪 Cookie（ログイン保持）の設定
 # ==========================================
 cookie_manager = stx.CookieManager(key="cookie_manager")
+cookies = cookie_manager.get_all()
 
-# セッション状態の初期化（Cookieに記録があればログイン・署名済みにする）
+# セッション状態の初期化（Cookieに記録があればログイン済みにする）
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = cookies.get("auth_status") == "True"
-if "signed" not in st.session_state:
-    st.session_state.signed = cookies.get("sign_status") == "True"
-
-# パスワード確認の関数
-def check_password():
-    CORRECT_PASSWORD = "nms1199" 
-    if st.session_state.password_input == CORRECT_PASSWORD:
-        st.session_state.authenticated = True
-        st.session_state.password_error = False
-        # パスワード不要をCookieに記憶（有効期限：365日）
-        cookie_manager.set("auth_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
-    else:
-        st.session_state.authenticated = False
-        st.session_state.password_error = True
 
 # ---------------------------------------------
-# 1. パスワード入力画面
+# 1. ログイン 兼 案内記録フォーム画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
-    st.title("🔒 医療用パンフレット（関係者限定）")
-    st.write("配布されたQRコードに付属のパスワードを入力してください。")
-    st.text_input("パスワード / Password", type="password", key="password_input", on_change=check_password)
-    if "password_error" in st.session_state and st.session_state.password_error:
-        st.error("パスワードが間違っています。 / Incorrect password.")
+    st.title("🔒 医療用パンフレット")
+    st.write("関係者用パスワードと、案内記録を入力してください。")
+    
+    # フォーム機能を使って、入力項目をまとめる
+    with st.form("login_and_signature_form"):
+        st.subheader("🔑 パスワード / Password")
+        password_input = st.text_input("パスワードを入力", type="password")
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        st.subheader("📝 案内記録 / Record")
+        doctor_name = st.text_input("担当医師名 / Doctor's Name")
+        patient_name = st.text_input("患者名（またはカルテ番号） / Patient's Name or ID")
+        confirm_check = st.checkbox("パンフレットの内容を案内し、確認しました / I have explained and confirmed the contents.")
+        
+        # 送信ボタン
+        submitted = st.form_submit_button("記録を送信してパンフレットを表示 / Submit & View")
+        
+        if submitted:
+            if password_input != "nms1199":
+                st.error("パスワードが間違っています。 / Incorrect password.")
+            elif not doctor_name or not patient_name or not confirm_check:
+                st.error("すべての項目に入力・チェックを入れてください。 / Please fill in all fields.")
+            else:
+                # ① Googleフォームにデータを送信
+                payload = {
+                    ENTRY_DOCTOR: doctor_name,
+                    ENTRY_PATIENT: patient_name
+                }
+                try:
+                    requests.post(GOOGLE_FORM_URL, data=payload)
+                except Exception:
+                    pass # ネットワークエラーが起きても画面は次に進める
+                
+                # ② ログイン状態をCookieに記憶（有効期限：365日）
+                st.session_state.authenticated = True
+                cookie_manager.set("auth_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
+                
+                st.success("✅ 記録を保存しました。パンフレットを表示します...")
+                import time
+                time.sleep(1.5)
+                st.rerun() # 画面をリロードしてパンフレットを表示
 
 # ---------------------------------------------
 # 2. ポスター型コンテンツ画面
@@ -56,9 +80,7 @@ if st.session_state.authenticated:
     with col2:
         if st.button("ログアウト / Logout"):
             cookie_manager.delete("auth_status")
-            cookie_manager.delete("sign_status")
             st.session_state.authenticated = False
-            st.session_state.signed = False
             st.rerun()
 
     def get_image_base64(file_path):
@@ -184,41 +206,3 @@ if st.session_state.authenticated:
         
     with tab_en:
         st.markdown(final_en, unsafe_allow_html=True)
-
-    # ---------------------------------------------
-    # 3. 署名・確認フォーム（署名していない場合のみ表示）
-    # ---------------------------------------------
-    if not st.session_state.signed:
-        st.markdown("<br><hr>", unsafe_allow_html=True)
-        st.subheader("📝 案内記録フォーム")
-        st.write("医療安全上の記録として、担当医師名と患者名を入力して「送信」を押してください。")
-        
-        with st.form("signature_form"):
-            doctor_name = st.text_input("担当医師名 / Doctor's Name")
-            patient_name = st.text_input("患者名（またはカルテ番号） / Patient's Name or ID")
-            confirm_check = st.checkbox("上記パンフレットの内容を案内し、確認しました / I have explained and confirmed the above.")
-            
-            submitted = st.form_submit_button("記録を送信して完了する / Submit")
-            
-            if submitted:
-                if doctor_name and patient_name and confirm_check:
-                    # ① Googleフォームにデータを送信
-                    payload = {
-                        ENTRY_DOCTOR: doctor_name,
-                        ENTRY_PATIENT: patient_name
-                    }
-                    try:
-                        requests.post(GOOGLE_FORM_URL, data=payload)
-                    except Exception:
-                        pass # ネットワークエラーが起きても画面は次に進める
-                    
-                    # ② 署名済み状態をCookieに記憶（有効期限：365日）
-                    st.session_state.signed = True
-                    cookie_manager.set("sign_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
-                    
-                    st.success("✅ 記録を保存しました。次回からはパスワードも署名も不要で閲覧できます。")
-                    import time
-                    time.sleep(2)
-                    st.rerun() # 画面をリロードしてフォームを消す
-                else:
-                    st.error("すべての項目に入力・チェックを入れてください。")
