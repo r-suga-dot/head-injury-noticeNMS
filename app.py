@@ -1,35 +1,50 @@
 import streamlit as st
 import base64
 import os
-import pandas as pd
-from datetime import datetime
-import pytz
+import datetime
+import requests
+import extra_streamlit_components as stx
 
 # ページの設定
 st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
 
-# セッション状態の初期化
+# ==========================================
+# 📝 スプレッドシート記録用の設定（自動抽出済み）
+# ==========================================
+GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeyLSwiQrUYWlQtUCYAc_mc4JZgIwlI6gK149bMQWIfYekZ1A/formResponse"
+ENTRY_DOCTOR = "entry.629282236" 
+ENTRY_PATIENT = "entry.2140844596" 
+
+# ==========================================
+# 🍪 Cookie（ログイン保持）の設定
+# ==========================================
+@st.cache_resource(experimental_allow_widgets=True)
+def get_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_manager()
+cookies = cookie_manager.get_all()
+
+# セッション状態の初期化（Cookieに記録があればログイン・署名済みにする）
 if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+    st.session_state.authenticated = cookies.get("auth_status") == "True"
+if "signed" not in st.session_state:
+    st.session_state.signed = cookies.get("sign_status") == "True"
 
-# ---------------------------------------------
-# ★新機能：URLパラメータによる自動ログイン
-# ---------------------------------------------
-if "pwd" in st.query_params and st.query_params["pwd"] == "nms1199":
-    st.session_state.authenticated = True
-
-# パスワード確認の関数（手動入力用）
+# パスワード確認の関数
 def check_password():
     CORRECT_PASSWORD = "nms1199" 
     if st.session_state.password_input == CORRECT_PASSWORD:
         st.session_state.authenticated = True
         st.session_state.password_error = False
+        # パスワード不要をCookieに記憶（有効期限：365日）
+        cookie_manager.set("auth_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
     else:
         st.session_state.authenticated = False
         st.session_state.password_error = True
 
 # ---------------------------------------------
-# 1. パスワード入力画面（手動アクセス時）
+# 1. パスワード入力画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
     st.title("🔒 医療用パンフレット（関係者限定）")
@@ -45,9 +60,10 @@ if st.session_state.authenticated:
     col1, col2 = st.columns([8, 2])
     with col2:
         if st.button("ログアウト / Logout"):
+            cookie_manager.delete("auth_status")
+            cookie_manager.delete("sign_status")
             st.session_state.authenticated = False
-            # ログアウト時はURLのパスワードを消去してリロード
-            st.query_params.clear()
+            st.session_state.signed = False
             st.rerun()
 
     def get_image_base64(file_path):
@@ -62,7 +78,6 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # CSSデザイン
     shared_css = """<style>
 /* 共通・PC向け基本設定 */
 .poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
@@ -176,44 +191,39 @@ if st.session_state.authenticated:
         st.markdown(final_en, unsafe_allow_html=True)
 
     # ---------------------------------------------
-    # 3. 説明確認フォームとデータ保存
+    # 3. 署名・確認フォーム（署名していない場合のみ表示）
     # ---------------------------------------------
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
-    st.subheader("📝 説明確認記録 / Confirmation Record")
-    st.write("注意事項を読み、理解した上でご署名をお願いいたします。")
-    
-    with st.form("signature_form"):
-        patient_name = st.text_input("患者様氏名 / Patient Name")
-        doctor_name = st.text_input("担当医師名 / Attending Doctor")
-        submitted = st.form_submit_button("記録を保存する / Save Record")
-
-        if submitted:
-            if patient_name and doctor_name:
-                # 日本時間を取得
-                tokyo_tz = pytz.timezone('Asia/Tokyo')
-                current_time = datetime.now(tokyo_tz).strftime("%Y-%m-%d %H:%M:%S")
-                
-                # データをデータフレーム化
-                record = {
-                    "確認日時": current_time,
-                    "患者名": patient_name,
-                    "担当医": doctor_name
-                }
-                df = pd.DataFrame([record])
-                csv_path = "records.csv"
-                
-                # CSVに追記保存
-                if os.path.exists(csv_path):
-                    df.to_csv(csv_path, mode='a', header=False, index=False, encoding='utf-8-sig')
+    if not st.session_state.signed:
+        st.markdown("<br><hr>", unsafe_allow_html=True)
+        st.subheader("📝 案内記録フォーム")
+        st.write("医療安全上の記録として、担当医師名と患者名を入力して「送信」を押してください。")
+        
+        with st.form("signature_form"):
+            doctor_name = st.text_input("担当医師名 / Doctor's Name")
+            patient_name = st.text_input("患者名（またはカルテ番号） / Patient's Name or ID")
+            confirm_check = st.checkbox("上記パンフレットの内容を案内し、確認しました / I have explained and confirmed the above.")
+            
+            submitted = st.form_submit_button("記録を送信して完了する / Submit")
+            
+            if submitted:
+                if doctor_name and patient_name and confirm_check:
+                    # ① Googleフォームにデータを送信
+                    payload = {
+                        ENTRY_DOCTOR: doctor_name,
+                        ENTRY_PATIENT: patient_name
+                    }
+                    try:
+                        requests.post(GOOGLE_FORM_URL, data=payload)
+                    except Exception:
+                        pass # ネットワークエラーが起きても画面は次に進める
+                    
+                    # ② 署名済み状態をCookieに記憶（有効期限：365日）
+                    st.session_state.signed = True
+                    cookie_manager.set("sign_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
+                    
+                    st.success("✅ 記録を保存しました。次回からはパスワードも署名も不要で閲覧できます。")
+                    import time
+                    time.sleep(2)
+                    st.rerun() # 画面をリロードしてフォームを消す
                 else:
-                    df.to_csv(csv_path, mode='w', header=True, index=False, encoding='utf-8-sig')
-                
-                st.success(f"【記録完了】{patient_name} 様、ありがとうございました。")
-            else:
-                st.error("患者様氏名と担当医師名の両方を入力してください。")
-
-    # 担当者向けのCSVダウンロードボタン（常に表示）
-    if os.path.exists("records.csv"):
-        st.write("---")
-        with open("records.csv", "rb") as f:
-            st.download_button("📥 【医療スタッフ用】記録データ(CSV)をダウンロード", f, file_name="records.csv")
+                    st.error("すべての項目に入力・チェックを入れてください。")
