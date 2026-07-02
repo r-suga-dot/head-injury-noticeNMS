@@ -30,7 +30,7 @@ if "authenticated" not in st.session_state:
 # 1. ログイン 兼 案内記録フォーム画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
-    st.title("🔒 医療用パンフレット")
+    st.title("🔒 頭部外傷パンフレット")
     st.write("関係者用パスワードと、案内記録を入力してください。")
     
     with st.form("login_and_signature_form"):
