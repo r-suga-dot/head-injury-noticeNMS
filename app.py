@@ -46,13 +46,25 @@ if not st.session_state.authenticated:
         lock_src = f"data:image/png;base64,{lock_b64}"
         st.markdown(f"""
         <style>
-        /* 画面全体の背景に lock.png を設定 */
-        .stApp {{
+        /* スマホ等の巨大化バグを防ぎ、見えている画面の大きさに100%追従させる設定 */
+        .stApp::before {{
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background-image: url("{lock_src}");
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
+            background-repeat: no-repeat;
+            z-index: -1;
         }}
+        /* アプリ全体の背景を透明化して、背後の画像を透過して見せる */
+        .stApp {{
+            background: transparent;
+        }}
+        
         /* 入力フォームの背景を少し透過させた白にして読みやすくする */
         [data-testid="stForm"] {{
             background-color: rgba(255, 255, 255, 0.92);
@@ -265,7 +277,7 @@ if st.session_state.authenticated:
         st.markdown(final_en, unsafe_allow_html=True)
 
     # ---------------------------------------------
-    # 3. PDF保存ボタンの追加（文言変更）
+    # 3. PDF保存ボタンの追加
     # ---------------------------------------------
     st.write("") # スペース空け
     components.html(
