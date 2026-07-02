@@ -97,7 +97,7 @@ if not st.session_state.authenticated:
     # タイトル部分の描画
     st.markdown("""
     <div class="login-title-box">
-        <h1>🔒 医療用パンフレット</h1>
+        <h1>🔒 頭部外傷後の注意パンフレット</h1>
         <p>関係者用パスワードと、案内記録を入力してください。</p>
     </div>
     """, unsafe_allow_html=True)
@@ -190,11 +190,29 @@ if st.session_state.authenticated:
     .bottom-section li { font-size: 0.9em; margin-bottom: 8px; }
 }
 
-/* PDF保存時の設定（A4・1枚に収める工夫） */
+/* PDF保存時の設定（A4・1枚に確実に収めるための微調整） */
 @media print {
-    @page { size: A4 portrait; margin: 10mm; }
-    button, .stTabs [data-baseweb="tab-list"], iframe { display: none !important; }
-    .poster-wrapper { box-shadow: none; border: none; padding: 0; }
+    @page { size: A4 portrait; margin: 8mm; } /* 余白を少し削る */
+    button, .stTabs [data-baseweb="tab-list"], iframe, header, footer { display: none !important; }
+    
+    .poster-wrapper { 
+        box-shadow: none !important; 
+        border: none !important; 
+        padding: 0 !important; 
+        font-size: 13.5px !important; /* 全体の文字サイズを縮小 */
+    }
+    .header { margin-bottom: 10px !important; padding-bottom: 5px !important; }
+    .header h2 { font-size: 22px !important; }
+    .logo-img { height: 30px !important; }
+    .bg-section { padding: 15px 15px !important; margin-bottom: 15px !important; }
+    .highlight { line-height: 1.5 !important; font-size: 1em !important; }
+    .bg-section p { margin: 0 0 8px 0 !important; }
+    .red-box { padding: 12px 15px 8px 15px !important; margin: 15px 0 !important; }
+    .red-box h4 { margin: 0 0 3px 0 !important; font-size: 1.1em !important; }
+    .red-box p { margin: 0 0 8px 15px !important; }
+    .bottom-section h3 { margin-bottom: 8px !important; font-size: 1.1em !important; }
+    .bottom-section li { margin-bottom: 5px !important; line-height: 1.4 !important; }
+    
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>"""
