@@ -1,42 +1,132 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 import os
-import pandas as pd
-from datetime import datetime
-import pytz
+import datetime
+import requests
+import extra_streamlit_components as stx
 
 # ページの設定
 st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
 
-# セッション状態の初期化
+# ==========================================
+# 共通関数：画像をBase64に変換
+# ==========================================
+def get_image_base64(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    return ""
+
+# ==========================================
+# 📝 スプレッドシート記録用の設定
+# ==========================================
+GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeyLSwiQrUYWlQtUCYAc_mc4JZgIwlI6gK149bMQWIfYekZ1A/formResponse"
+ENTRY_DOCTOR = "entry.629282236" 
+ENTRY_PATIENT = "entry.2140844596" 
+
+# ==========================================
+# 🍪 Cookie（ログイン保持）の設定
+# ==========================================
+cookie_manager = stx.CookieManager(key="cookie_manager")
+cookies = cookie_manager.get_all()
+
+# セッション状態の初期化（Cookieに記録があればログイン済みにする）
 if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+    st.session_state.authenticated = cookies.get("auth_status") == "True"
 
 # ---------------------------------------------
-# ★新機能：URLパラメータによる自動ログイン
-# ---------------------------------------------
-if "pwd" in st.query_params and st.query_params["pwd"] == "nms1199":
-    st.session_state.authenticated = True
-
-# パスワード確認の関数（手動入力用）
-def check_password():
-    CORRECT_PASSWORD = "nms1199" 
-    if st.session_state.password_input == CORRECT_PASSWORD:
-        st.session_state.authenticated = True
-        st.session_state.password_error = False
-    else:
-        st.session_state.authenticated = False
-        st.session_state.password_error = True
-
-# ---------------------------------------------
-# 1. パスワード入力画面（手動アクセス時）
+# 1. ログイン 兼 案内記録フォーム画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
-    st.title("🔒 医療用パンフレット（関係者限定）")
-    st.write("配布されたQRコードに付属のパスワードを入力してください。")
-    st.text_input("パスワード / Password", type="password", key="password_input", on_change=check_password)
-    if "password_error" in st.session_state and st.session_state.password_error:
-        st.error("パスワードが間違っています。 / Incorrect password.")
+    
+    # 背景画像（lock.png）を読み込んでCSSに適用
+    lock_b64 = get_image_base64("lock.png")
+    if lock_b64:
+        lock_src = f"data:image/png;base64,{lock_b64}"
+        st.markdown(f"""
+        <style>
+        /* 画面全体の背景に lock.png を設定 */
+        .stApp {{
+            background-image: url("{lock_src}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        /* 入力フォームの背景を少し透過させた白にして読みやすくする */
+        [data-testid="stForm"] {{
+            background-color: rgba(255, 255, 255, 0.92);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }}
+        /* タイトル部分の背景設定 */
+        .login-title-box {{
+            background-color: rgba(255, 255, 255, 0.92);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        .login-title-box h1 {{
+            margin-top: 0;
+            font-size: 28px;
+            color: #1a365d;
+        }}
+        .login-title-box p {{
+            margin-bottom: 0;
+            color: #333;
+            font-weight: bold;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+    
+    # タイトル部分の描画
+    st.markdown("""
+    <div class="login-title-box">
+        <h1>🔒 医療用パンフレット</h1>
+        <p>関係者用パスワードと、案内記録を入力してください。</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("login_and_signature_form"):
+        st.subheader("🔑 パスワード / Password")
+        password_input = st.text_input("パスワードを入力", type="password")
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        st.subheader("📝 案内記録 / Record")
+        doctor_name = st.text_input("担当医師名 / Doctor's Name")
+        patient_name = st.text_input("患者名（またはカルテ番号） / Patient's Name or ID")
+        confirm_check = st.checkbox("パンフレットの内容を案内し、確認しました / I have explained and confirmed the contents.")
+        
+        submitted = st.form_submit_button("記録を送信してパンフレットを表示 / Submit & View")
+        
+        if submitted:
+            if password_input != "nms1199":
+                st.error("パスワードが間違っています。 / Incorrect password.")
+            elif not doctor_name or not patient_name or not confirm_check:
+                st.error("すべての項目に入力・チェックを入れてください。 / Please fill in all fields.")
+            else:
+                # ① Googleフォームにデータを送信
+                payload = {
+                    ENTRY_DOCTOR: doctor_name,
+                    ENTRY_PATIENT: patient_name
+                }
+                try:
+                    requests.post(GOOGLE_FORM_URL, data=payload)
+                except Exception:
+                    pass 
+                
+                # ② ログイン状態をCookieに記憶（有効期限：365日）
+                st.session_state.authenticated = True
+                cookie_manager.set("auth_status", "True", expires_at=datetime.datetime.now() + datetime.timedelta(days=365))
+                
+                st.success("✅ 記録を保存しました。パンフレットを表示します...")
+                import time
+                time.sleep(1.5)
+                st.rerun()
 
 # ---------------------------------------------
 # 2. ポスター型コンテンツ画面
@@ -45,16 +135,9 @@ if st.session_state.authenticated:
     col1, col2 = st.columns([8, 2])
     with col2:
         if st.button("ログアウト / Logout"):
+            cookie_manager.delete("auth_status")
             st.session_state.authenticated = False
-            # ログアウト時はURLのパスワードを消去してリロード
-            st.query_params.clear()
             st.rerun()
-
-    def get_image_base64(file_path):
-        if os.path.exists(file_path):
-            with open(file_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
-        return ""
 
     logo_b64 = get_image_base64("logo.png")
     bg_b64 = get_image_base64("bg.jpg")
@@ -62,39 +145,45 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
-    # CSSデザイン
+    # CSSデザイン（1枚に収まるように余白・行間を少し詰める）
     shared_css = """<style>
-/* 共通・PC向け基本設定 */
-.poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
-.header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-.header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
-.logo-img { height: 50px; object-fit: contain; }
-.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
+.poster-wrapper { background-color: #ffffff; padding: 15px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.6; font-size: 16px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
+.header { border-bottom: 3px solid #1a365d; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
+.header h2 { margin: 0; font-size: 26px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
+.logo-img { height: 40px; object-fit: contain; }
+.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
 .highlight-container { text-align: left; display: inline-block; }
-.highlight { background-color: rgba(255, 255, 255, 0.88); padding: 4px 8px; font-size: 1.1em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.95; color: #000; }
-.bg-section p { margin: 0 0 18px 0; }
-.red-box { border: 3px solid #d32f2f; border-radius: 16px; background-color: #ffffff; padding: 25px 25px 15px 25px; margin: 30px 0; }
-.red-box h4 { margin: 0 0 8px 0; font-size: 1.3em; color: #d32f2f; font-weight: bold; }
-.red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #333; line-height: 1.6; }
-.bottom-section h3 { font-size: 1.35em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
-.bottom-section ul { padding-left: 30px; margin: 0; }
-.bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
+.highlight { background-color: rgba(255, 255, 255, 0.88); padding: 2px 6px; font-size: 1.05em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.8; color: #000; }
+.bg-section p { margin: 0 0 12px 0; }
+.red-box { border: 3px solid #d32f2f; border-radius: 12px; background-color: #ffffff; padding: 15px 20px 10px 20px; margin: 20px 0; }
+.red-box h4 { margin: 0 0 5px 0; font-size: 1.2em; color: #d32f2f; font-weight: bold; }
+.red-box p { margin: 0 0 12px 20px; font-size: 0.95em; color: #333; line-height: 1.5; }
+.bottom-section h3 { font-size: 1.2em; border-left: 6px solid #1a365d; padding-left: 10px; color: #1a365d; margin-bottom: 12px; font-weight: bold; }
+.bottom-section ul { padding-left: 25px; margin: 0; }
+.bottom-section li { margin-bottom: 8px; font-size: 0.95em; line-height: 1.6; }
 
-/* スマホ向け調整 */
 @media (max-width: 768px) { 
     .pc-br { display: none; }
-    .poster-wrapper { font-size: 15px; padding: 12px; }
-    .header { flex-direction: column; align-items: center; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; }
-    .header h2 { font-size: 22px; text-align: center; }
-    .logo-img { height: 40px; } 
-    .bg-section { padding: 20px 15px; margin-bottom: 20px; }
-    .highlight { font-size: 1.05em; padding: 3px 6px; line-height: 1.8; }
-    .red-box { padding: 15px 15px 10px 15px; margin: 20px 0; }
-    .red-box h4 { font-size: 1.15em; }
-    .red-box p { margin: 0 0 15px 15px; font-size: 0.95em; }
-    .bottom-section h3 { font-size: 1.2em; margin-bottom: 15px; }
+    .poster-wrapper { font-size: 14px; padding: 10px; }
+    .header { flex-direction: column; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 12px; }
+    .header h2 { font-size: 20px; text-align: center; }
+    .logo-img { height: 35px; } 
+    .bg-section { padding: 15px 12px; margin-bottom: 15px; }
+    .highlight { font-size: 1em; padding: 2px 4px; line-height: 1.6; }
+    .red-box { padding: 12px 15px 8px 15px; margin: 15px 0; }
+    .red-box h4 { font-size: 1.1em; }
+    .red-box p { margin: 0 0 10px 15px; font-size: 0.9em; }
+    .bottom-section h3 { font-size: 1.1em; margin-bottom: 10px; }
     .bottom-section ul { padding-left: 20px; }
-    .bottom-section li { font-size: 0.95em; margin-bottom: 10px; }
+    .bottom-section li { font-size: 0.9em; margin-bottom: 8px; }
+}
+
+/* PDF保存時の設定（A4・1枚に収める工夫） */
+@media print {
+    @page { size: A4 portrait; margin: 10mm; }
+    button, .stTabs [data-baseweb="tab-list"], iframe { display: none !important; }
+    .poster-wrapper { box-shadow: none; border: none; padding: 0; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>"""
 
@@ -176,44 +265,19 @@ if st.session_state.authenticated:
         st.markdown(final_en, unsafe_allow_html=True)
 
     # ---------------------------------------------
-    # 3. 説明確認フォームとデータ保存
+    # 3. PDF保存ボタンの追加（文言変更）
     # ---------------------------------------------
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
-    st.subheader("📝 説明確認記録 / Confirmation Record")
-    st.write("注意事項を読み、理解した上でご署名をお願いいたします。")
-    
-    with st.form("signature_form"):
-        patient_name = st.text_input("患者様氏名 / Patient Name")
-        doctor_name = st.text_input("担当医師名 / Attending Doctor")
-        submitted = st.form_submit_button("記録を保存する / Save Record")
-
-        if submitted:
-            if patient_name and doctor_name:
-                # 日本時間を取得
-                tokyo_tz = pytz.timezone('Asia/Tokyo')
-                current_time = datetime.now(tokyo_tz).strftime("%Y-%m-%d %H:%M:%S")
-                
-                # データをデータフレーム化
-                record = {
-                    "確認日時": current_time,
-                    "患者名": patient_name,
-                    "担当医": doctor_name
-                }
-                df = pd.DataFrame([record])
-                csv_path = "records.csv"
-                
-                # CSVに追記保存
-                if os.path.exists(csv_path):
-                    df.to_csv(csv_path, mode='a', header=False, index=False, encoding='utf-8-sig')
-                else:
-                    df.to_csv(csv_path, mode='w', header=True, index=False, encoding='utf-8-sig')
-                
-                st.success(f"【記録完了】{patient_name} 様、ありがとうございました。")
-            else:
-                st.error("患者様氏名と担当医師名の両方を入力してください。")
-
-    # 担当者向けのCSVダウンロードボタン（常に表示）
-    if os.path.exists("records.csv"):
-        st.write("---")
-        with open("records.csv", "rb") as f:
-            st.download_button("📥 【医療スタッフ用】記録データ(CSV)をダウンロード", f, file_name="records.csv")
+    st.write("") # スペース空け
+    components.html(
+        """
+        <div style="text-align: center; margin-top: 10px;">
+            <button onclick="window.parent.print()" style="padding: 12px 24px; font-size: 16px; border-radius: 8px; background-color: #1a365d; color: white; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                📄 画面をPDFで保存する / Save as PDF
+            </button>
+            <p style="font-size: 12px; color: #666; margin-top: 10px; font-family: sans-serif;">
+                ※スマートフォンの場合は、表示されるメニューから「PDFに保存」を選択してください。
+            </p>
+        </div>
+        """,
+        height=100
+    )
