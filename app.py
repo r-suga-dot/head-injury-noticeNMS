@@ -18,7 +18,7 @@ ENTRY_PATIENT = "entry.2140844596"
 # ==========================================
 # 🍪 Cookie（ログイン保持）の設定
 # ==========================================
-@st.cache_resource(experimental_allow_widgets=True)
+@st.cache_resource
 def get_manager():
     return stx.CookieManager()
 
