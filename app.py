@@ -10,6 +10,15 @@ import extra_streamlit_components as stx
 st.set_page_config(page_title="頭部外傷後の注意 / Precautions", layout="centered")
 
 # ==========================================
+# 共通関数：画像をBase64に変換
+# ==========================================
+def get_image_base64(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    return ""
+
+# ==========================================
 # 📝 スプレッドシート記録用の設定
 # ==========================================
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeyLSwiQrUYWlQtUCYAc_mc4JZgIwlI6gK149bMQWIfYekZ1A/formResponse"
@@ -30,8 +39,56 @@ if "authenticated" not in st.session_state:
 # 1. ログイン 兼 案内記録フォーム画面
 # ---------------------------------------------
 if not st.session_state.authenticated:
-    st.title("🔒 頭部外傷パンフレット")
-    st.write("関係者用パスワードと、案内記録を入力してください。")
+    
+    # 背景画像（lock.png）を読み込んでCSSに適用
+    lock_b64 = get_image_base64("lock.png")
+    if lock_b64:
+        lock_src = f"data:image/png;base64,{lock_b64}"
+        st.markdown(f"""
+        <style>
+        /* 画面全体の背景に lock.png を設定 */
+        .stApp {{
+            background-image: url("{lock_src}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        /* 入力フォームの背景を少し透過させた白にして読みやすくする */
+        [data-testid="stForm"] {{
+            background-color: rgba(255, 255, 255, 0.92);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }}
+        /* タイトル部分の背景設定 */
+        .login-title-box {{
+            background-color: rgba(255, 255, 255, 0.92);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        .login-title-box h1 {{
+            margin-top: 0;
+            font-size: 28px;
+            color: #1a365d;
+        }}
+        .login-title-box p {{
+            margin-bottom: 0;
+            color: #333;
+            font-weight: bold;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+    
+    # タイトル部分の描画
+    st.markdown("""
+    <div class="login-title-box">
+        <h1>🔒 医療用パンフレット</h1>
+        <p>関係者用パスワードと、案内記録を入力してください。</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.form("login_and_signature_form"):
         st.subheader("🔑 パスワード / Password")
@@ -81,12 +138,6 @@ if st.session_state.authenticated:
             cookie_manager.delete("auth_status")
             st.session_state.authenticated = False
             st.rerun()
-
-    def get_image_base64(file_path):
-        if os.path.exists(file_path):
-            with open(file_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
-        return ""
 
     logo_b64 = get_image_base64("logo.png")
     bg_b64 = get_image_base64("bg.jpg")
