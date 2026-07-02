@@ -94,40 +94,45 @@ if st.session_state.authenticated:
     logo_src = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
     bg_src = f"data:image/jpeg;base64,{bg_b64}" if bg_b64 else ""
 
+    # CSSデザイン（1枚に収まるように余白・行間を少し詰める）
     shared_css = """<style>
-.poster-wrapper { background-color: #ffffff; padding: 20px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.8; font-size: 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
-.header { border-bottom: 3px solid #1a365d; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-.header h2 { margin: 0; font-size: 30px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
-.logo-img { height: 50px; object-fit: contain; }
-.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 35px 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
+.poster-wrapper { background-color: #ffffff; padding: 15px; font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; color: #222; line-height: 1.6; font-size: 16px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
+.header { border-bottom: 3px solid #1a365d; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
+.header h2 { margin: 0; font-size: 26px; color: #1a365d; font-weight: 900; letter-spacing: 1px; }
+.logo-img { height: 40px; object-fit: contain; }
+.bg-section { background-image: url('BG_IMG_HOLDER'); background-size: cover; background-position: center; padding: 25px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; }
 .highlight-container { text-align: left; display: inline-block; }
-.highlight { background-color: rgba(255, 255, 255, 0.88); padding: 4px 8px; font-size: 1.1em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.95; color: #000; }
-.bg-section p { margin: 0 0 18px 0; }
-.red-box { border: 3px solid #d32f2f; border-radius: 16px; background-color: #ffffff; padding: 25px 25px 15px 25px; margin: 30px 0; }
-.red-box h4 { margin: 0 0 8px 0; font-size: 1.3em; color: #d32f2f; font-weight: bold; }
-.red-box p { margin: 0 0 20px 25px; font-size: 1.05em; color: #333; line-height: 1.6; }
-.bottom-section h3 { font-size: 1.35em; border-left: 6px solid #1a365d; padding-left: 12px; color: #1a365d; margin-bottom: 20px; font-weight: bold; }
-.bottom-section ul { padding-left: 30px; margin: 0; }
-.bottom-section li { margin-bottom: 15px; font-size: 1.05em; line-height: 1.7; }
+.highlight { background-color: rgba(255, 255, 255, 0.88); padding: 2px 6px; font-size: 1.05em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; line-height: 1.8; color: #000; }
+.bg-section p { margin: 0 0 12px 0; }
+.red-box { border: 3px solid #d32f2f; border-radius: 12px; background-color: #ffffff; padding: 15px 20px 10px 20px; margin: 20px 0; }
+.red-box h4 { margin: 0 0 5px 0; font-size: 1.2em; color: #d32f2f; font-weight: bold; }
+.red-box p { margin: 0 0 12px 20px; font-size: 0.95em; color: #333; line-height: 1.5; }
+.bottom-section h3 { font-size: 1.2em; border-left: 6px solid #1a365d; padding-left: 10px; color: #1a365d; margin-bottom: 12px; font-weight: bold; }
+.bottom-section ul { padding-left: 25px; margin: 0; }
+.bottom-section li { margin-bottom: 8px; font-size: 0.95em; line-height: 1.6; }
+
 @media (max-width: 768px) { 
     .pc-br { display: none; }
-    .poster-wrapper { font-size: 15px; padding: 12px; }
-    .header { flex-direction: column; align-items: center; gap: 10px; padding-bottom: 10px; margin-bottom: 15px; }
-    .header h2 { font-size: 22px; text-align: center; }
-    .logo-img { height: 40px; } 
-    .bg-section { padding: 20px 15px; margin-bottom: 20px; }
-    .highlight { font-size: 1.05em; padding: 3px 6px; line-height: 1.8; }
-    .red-box { padding: 15px 15px 10px 15px; margin: 20px 0; }
-    .red-box h4 { font-size: 1.15em; }
-    .red-box p { margin: 0 0 15px 15px; font-size: 0.95em; }
-    .bottom-section h3 { font-size: 1.2em; margin-bottom: 15px; }
+    .poster-wrapper { font-size: 14px; padding: 10px; }
+    .header { flex-direction: column; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 12px; }
+    .header h2 { font-size: 20px; text-align: center; }
+    .logo-img { height: 35px; } 
+    .bg-section { padding: 15px 12px; margin-bottom: 15px; }
+    .highlight { font-size: 1em; padding: 2px 4px; line-height: 1.6; }
+    .red-box { padding: 12px 15px 8px 15px; margin: 15px 0; }
+    .red-box h4 { font-size: 1.1em; }
+    .red-box p { margin: 0 0 10px 15px; font-size: 0.9em; }
+    .bottom-section h3 { font-size: 1.1em; margin-bottom: 10px; }
     .bottom-section ul { padding-left: 20px; }
-    .bottom-section li { font-size: 0.95em; margin-bottom: 10px; }
+    .bottom-section li { font-size: 0.9em; margin-bottom: 8px; }
 }
-/* 印刷時の設定（不要なボタンやタブを消す） */
+
+/* PDF保存時の設定（A4・1枚に収める工夫） */
 @media print {
+    @page { size: A4 portrait; margin: 10mm; }
     button, .stTabs [data-baseweb="tab-list"], iframe { display: none !important; }
-    .poster-wrapper { box-shadow: none; border: none; }
+    .poster-wrapper { box-shadow: none; border: none; padding: 0; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>"""
 
@@ -209,19 +214,19 @@ if st.session_state.authenticated:
         st.markdown(final_en, unsafe_allow_html=True)
 
     # ---------------------------------------------
-    # 3. PDF保存（印刷）ボタンの追加
+    # 3. PDF保存ボタンの追加（文言変更）
     # ---------------------------------------------
     st.write("") # スペース空け
     components.html(
         """
-        <div style="text-align: center; margin-top: 20px;">
+        <div style="text-align: center; margin-top: 10px;">
             <button onclick="window.parent.print()" style="padding: 12px 24px; font-size: 16px; border-radius: 8px; background-color: #1a365d; color: white; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                🖨️ 画面をPDFで保存・印刷する / Save as PDF
+                📄 画面をPDFで保存する / Save as PDF
             </button>
             <p style="font-size: 12px; color: #666; margin-top: 10px; font-family: sans-serif;">
-                ※スマートフォンの場合は、共有メニューから「プリント」または「PDFに保存」を選択してください。
+                ※スマートフォンの場合は、表示されるメニューから「PDFに保存」を選択してください。
             </p>
         </div>
         """,
-        height=120
+        height=100
     )
