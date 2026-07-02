@@ -18,12 +18,7 @@ ENTRY_PATIENT = "entry.2140844596"
 # ==========================================
 # 🍪 Cookie（ログイン保持）の設定
 # ==========================================
-@st.cache_resource
-def get_manager():
-    return stx.CookieManager()
-
-cookie_manager = get_manager()
-cookies = cookie_manager.get_all()
+cookie_manager = stx.CookieManager(key="cookie_manager")
 
 # セッション状態の初期化（Cookieに記録があればログイン・署名済みにする）
 if "authenticated" not in st.session_state:
